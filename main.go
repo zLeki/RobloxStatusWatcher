@@ -14,13 +14,30 @@ import (
 	"time"
 )
 var (
-	stalkUserID = "439403718"
+	stalkUserID = "293025549" // userid
 	RobloSecurity = ""
 	client http.Client
 	online bool
+	playerStatus string
 )
+type SMSRequestBody struct {
+	From      string `json:"from"`
+	Text      string `json:"text"`
+	To        string `json:"to"`
+	APIKey    string `json:"api_key"`
+	APISecret string `json:"api_secret"`
+}
+func init() {
+	err := os.Setenv("NEXMO_API_KEY", "54113743")
+	if err != nil {
+		return
+	}
+	err = os.Setenv("NEXMO_API_SECRET", "Jzpg5yCqYjoI7RjF")
+	if err != nil {
+		return
+	}
 
-
+}
 type UserInfo struct {
 	IsOnline     bool        `json:"IsOnline"`
 	LastLocation string      `json:"LastLocation"`
@@ -50,15 +67,54 @@ func getUserStatus() (UserInfo, error) {
 	}
 	if userInfo.IsOnline {
 		if userInfo.PlaceID != nil {
+			if playerStatus != "InGame" {
+				sendSms("Robux Stalker: "+getUsernameFromUserID(userInfo.VisitorID)+"is in game! Enlarge: https://robloxstalker.leki2.repl.co/?placeid=" + strconv.Itoa(int(userInfo.PlaceID.(float64))) + "&username=" + getUsernameFromUserID(userInfo.VisitorID) + "&placename=" + strings.Replace(strings.Replace(strings.Replace(strings.Replace(userInfo.LastLocation, " ", "%20", -1), "[", "%5B", -1), "]", "%5D", -1), "!", "%21", -1), "InGame")
+			}
+			log.Println("In game")
 			return userInfo, nil
 		} else {
+			log.Println(userInfo)
+			if playerStatus != "Online" {
+				sendSms("Player is online", "Online")
+			}
 			return UserInfo{}, errors.New("User is online but not in a game refreshing in 60 seconds")
 		}
 	}else{
+		if playerStatus != "Offline" {
+			sendSms("Player is offline", "Offline")
+		}
+
 		return UserInfo{}, errors.New("User is not online refreshing in 60 seconds")
 	}
 }
+func sendSms(content, status string) {
+	body := SMSRequestBody{
+		APIKey:    os.Getenv("NEXMO_API_KEY"),
+		APISecret: "Jzpg5yCqYjoI7RjF",
+		To:        "12064193462",
+		From:      "18885733047",
+		Text:      content,
+	}
+	log.Println(body.APISecret)
+	smsBody, err := json.Marshal(body)
+	if err != nil {
+		panic(err)
+	}
 
+	resp, err := http.Post("https://rest.nexmo.com/sms/json", "application/json", bytes.NewBuffer(smsBody))
+	if err != nil {
+		panic(err)
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusOK {
+		log.Println("SMS sent")
+
+	} else {
+		log.Println("SMS failed")
+	}
+	playerStatus = status
+}
 func main() {
 	for {
 		gameID, err := getUserStatus()
@@ -71,9 +127,10 @@ func main() {
 				var iAreaId = int(gameID.PlaceID.(float64))
 				s:=getUsernameFromUserID(gameID.VisitorID)
 				log.Println(s+" is in game:", iAreaId)
+				
 				if online != true {
 					http.HandleFunc("/", WebPage)
-					log.Println("Enlarge: https://robloxstalker.leki2.repl.co/?placeid=" + strconv.Itoa(iAreaId) + "&username=" + s + "&placename=" + strings.Replace(strings.Replace(strings.Replace(strings.Replace(gameID.LastLocation, " ", "%20", -1), "[", "%5B", -1), "]", "%5D", -1), "!", "%21", -1))
+					log.Println("Enlarge: http://localhost:8081/?placeid=" + strconv.Itoa(iAreaId) + "&username=" + s + "&userID="+strconv.Itoa(gameID.VisitorID)+"&placename=" + strings.Replace(strings.Replace(strings.Replace(strings.Replace(strings.Replace(gameID.LastLocation, " ", "-", -1), "[", "-", -1), "]", "-", -1), "!", "-", -1), "Playing", "", -1))
 					go func() {
 						err := http.ListenAndServe(":8081", nil)
 						if err != nil {
@@ -83,6 +140,7 @@ func main() {
 					log.Println("Server started")
 					online = true
 				}else{
+					log.Println("Enlarge: http://localhost:8081/?placeid=" + strconv.Itoa(iAreaId) + "&username=" + s + "&userID="+strconv.Itoa(gameID.VisitorID)+"&placename=" + strings.Replace(strings.Replace(strings.Replace(strings.Replace(strings.Replace(gameID.LastLocation, " ", "-", -1), "[", "-", -1), "]", "-", -1), "!", "-", -1), "Playing", "", -1))
 					log.Println("Already online user is in game:", iAreaId)
 				}
 
