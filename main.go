@@ -28,11 +28,11 @@ type SMSRequestBody struct {
 	APISecret string `json:"api_secret"`
 }
 func init() {
-	err := os.Setenv("NEXMO_API_KEY", "54113743")
+	err := os.Setenv("NEXMO_API_KEY", "")
 	if err != nil {
 		return
 	}
-	err = os.Setenv("NEXMO_API_SECRET", "Jzpg5yCqYjoI7RjF")
+	err = os.Setenv("NEXMO_API_SECRET", "")
 	if err != nil {
 		return
 	}
@@ -90,9 +90,9 @@ func getUserStatus() (UserInfo, error) {
 func sendSms(content, status string) {
 	body := SMSRequestBody{
 		APIKey:    os.Getenv("NEXMO_API_KEY"),
-		APISecret: "Jzpg5yCqYjoI7RjF",
-		To:        "12064193462",
-		From:      "18885733047",
+		APISecret: "",
+		To:        "",
+		From:      "",
 		Text:      content,
 	}
 	log.Println(body.APISecret)
